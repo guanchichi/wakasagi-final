@@ -11,11 +11,14 @@
 #include <algorithm>
 #include <limits>
 
+// A fixed Zobrist key to XOR into the TT key when the player's side swaps.
+const uint64_t MY_SIDE_ZOBRIST_KEY = 0x547275654E616D65ULL; // "TrueName" in ASCII
+
 // Forward declarations for recursive functions
-float F4_NegaScout(Position& pos, uint64_t key, int depth, float alpha, float beta);
-float G4_NegaScout(Position& pos, uint64_t key, int depth, float alpha, float beta);
-float Star0_5_EQU_F(Position& pos, uint64_t key, Move flip_move, int depth, float alpha, float beta);
-float Star0_5_EQU_G(Position& pos, uint64_t key, Move flip_move, int depth, float alpha, float beta);
+float F4_NegaScout(Position& pos, uint64_t key, int depth, float alpha, float beta, Color mySide);
+float G4_NegaScout(Position& pos, uint64_t key, int depth, float alpha, float beta, Color mySide);
+float Star0_5_EQU_F(Position& pos, uint64_t key, Move flip_move, int depth, float alpha, float beta, Color mySide);
+float Star0_5_EQU_G(Position& pos, uint64_t key, Move flip_move, int depth, float alpha, float beta, Color mySide);
 
 // Evaluation function
 int piece_value(PieceType pt) {
@@ -31,31 +34,41 @@ int piece_value(PieceType pt) {
     }
 }
 
-float evaluate(const Position& pos) {
+float evaluate(const Position& pos, Color mySide) {
     float score = 0;
-    Color us = pos.due_up();
+    Color us = mySide;
     Color them = ~us;
 
     for (PieceType pt = General; pt < SHOWN_PIECE_TYPE_NB; pt += 1) {
         score += pos.count(us, pt) * piece_value(pt);
         score -= pos.count(them, pt) * piece_value(pt);
     }
+
+    // From the perspective of the player whose turn it is
+    if (pos.due_up() != mySide) {
+        return -score;
+    }
     return score;
 }
 
-float Star0_5_EQU_F(Position& pos, uint64_t key, Move flip_move, int depth, float alpha, float beta) {
+float Star0_5_EQU_F(Position& pos, uint64_t key, Move flip_move, int depth, float alpha, float beta, Color mySide) {
+    Piece p = pos.peek_piece_at(flip_move.from());
+    if (p.side != Mystery) {
+        return evaluate(pos, mySide);
+    }
+
     auto potential_pieces = pos.get_collection(); 
     int c = potential_pieces.size(); 
+
+    bool is_first_flip = (pos.count(Hidden) == 32);
 
     if (c == 0) {
         Position next_pos = pos;
         uint64_t next_key = key;
         // This path is tricky, as the outcome is random and not known.
-        // The key update depends on the revealed piece.
-        // For now, we won't update the key, and just proceed.
         // A full implementation might need to pass the key by reference and update it in do_move.
         next_pos.do_move(flip_move);
-        return G4_NegaScout(next_pos, next_key, depth - 1, alpha, beta);
+        return G4_NegaScout(next_pos, next_key, depth - 1, alpha, beta, mySide);
     }
 
     float v_min = -2000.0f; 
@@ -79,7 +92,13 @@ float Star0_5_EQU_F(Position& pos, uint64_t key, Move flip_move, int depth, floa
         
         next_pos.do_move(flip_move);
 
-        float t = G4_NegaScout(next_pos, next_key, depth - 1, v_min, v_max);
+        Color next_mySide = mySide;
+        if (piece_outcome.side != mySide && pos.peek_piece_at(flip_move.from()).side == Mystery) {
+            next_mySide = ~mySide;
+            next_key ^= MY_SIDE_ZOBRIST_KEY;
+        }
+
+        float t = G4_NegaScout(next_pos, next_key, depth - 1, v_min, v_max, next_mySide);
 
         m_i = m_i + (t - v_min) / c;
         M_i = M_i + (t - v_max) / c;
@@ -93,14 +112,22 @@ float Star0_5_EQU_F(Position& pos, uint64_t key, Move flip_move, int depth, floa
     return vsum / c;
 }
 
-float Star0_5_EQU_G(Position& pos, uint64_t key, Move flip_move, int depth, float alpha, float beta) {
+float Star0_5_EQU_G(Position& pos, uint64_t key, Move flip_move, int depth, float alpha, float beta, Color mySide) {
+    Piece p = pos.peek_piece_at(flip_move.from());
+    if (p.side != Mystery) { 
+        return evaluate(pos, mySide);
+    }
+
+    
     auto potential_pieces = pos.get_collection();
     int c = potential_pieces.size();
+    bool is_first_flip = (pos.count(Hidden) == 32);
+
     if (c == 0) {
         Position next_pos = pos;
         uint64_t next_key = key;
         next_pos.do_move(flip_move);
-        return F4_NegaScout(next_pos, next_key, depth - 1, alpha, beta);
+        return F4_NegaScout(next_pos, next_key, depth - 1, alpha, beta, mySide);
     }
 
     float v_min = -2000.0f; 
@@ -123,7 +150,13 @@ float Star0_5_EQU_G(Position& pos, uint64_t key, Move flip_move, int depth, floa
 
         next_pos.do_move(flip_move); 
 
-        float t = F4_NegaScout(next_pos, next_key, depth - 1, v_min, v_max);
+        Color next_mySide = mySide;
+        if (piece_outcome.side != mySide && pos.peek_piece_at(flip_move.from()).side == Mystery) {
+            next_mySide = ~mySide;
+            next_key ^= MY_SIDE_ZOBRIST_KEY;
+        }
+
+        float t = F4_NegaScout(next_pos, next_key, depth - 1, v_min, v_max, next_mySide);
 
         m_i = m_i + (t - v_min) / c;
         M_i = M_i + (t - v_max) / c;
@@ -138,7 +171,7 @@ float Star0_5_EQU_G(Position& pos, uint64_t key, Move flip_move, int depth, floa
 }
 
 
-float F4_NegaScout(Position& pos, uint64_t key, int depth, float alpha, float beta) {
+float F4_NegaScout(Position& pos, uint64_t key, int depth, float alpha, float beta, Color mySide) {
     float original_alpha = alpha;
     float score = 0.0f;
     Move tt_move;
@@ -149,12 +182,12 @@ float F4_NegaScout(Position& pos, uint64_t key, int depth, float alpha, float be
     }
 
     if (depth == 0 || pos.winner() != NO_COLOR) {
-        return evaluate(pos);
+        return evaluate(pos, mySide);
     }
 
     MoveList moves(pos);
     if (moves.size() == 0) {
-        return evaluate(pos);
+        return evaluate(pos, mySide);
     }
 
     // Move Ordering: Prioritize the move from the TT
@@ -174,7 +207,7 @@ float F4_NegaScout(Position& pos, uint64_t key, int depth, float alpha, float be
     {
         Move move = moves[0];
         if (move.type() == Flipping) {
-            score = Star0_5_EQU_F(pos, key, move, depth, alpha, beta);
+            score = Star0_5_EQU_F(pos, key, move, depth, alpha, beta, mySide);
         } else {
             Position next_pos = pos;
             uint64_t next_key = key;
@@ -188,7 +221,7 @@ float F4_NegaScout(Position& pos, uint64_t key, int depth, float alpha, float be
             update_key(next_key, move.to(), piece_to_index(moving_piece));
             
             next_pos.do_move(move);
-            score = G4_NegaScout(next_pos, next_key, depth - 1, alpha, beta);
+            score = G4_NegaScout(next_pos, next_key, depth - 1, alpha, beta, mySide);
         }
         
         if (score > best_score) {
@@ -208,7 +241,7 @@ float F4_NegaScout(Position& pos, uint64_t key, int depth, float alpha, float be
         Move move = moves[i];
         
         if (move.type() == Flipping) {
-            score = Star0_5_EQU_F(pos, key, move, depth, alpha, alpha + 1);
+            score = Star0_5_EQU_F(pos, key, move, depth, alpha, alpha + 1, mySide);
         } else {
             Position next_pos = pos;
             uint64_t next_key = key;
@@ -222,12 +255,12 @@ float F4_NegaScout(Position& pos, uint64_t key, int depth, float alpha, float be
             update_key(next_key, move.to(), piece_to_index(moving_piece));
 
             next_pos.do_move(move);
-            score = G4_NegaScout(next_pos, next_key, depth - 1, alpha, alpha + 1);
+            score = G4_NegaScout(next_pos, next_key, depth - 1, alpha, alpha + 1, mySide);
         }
 
         if (score > alpha && score < beta) { // Re-search
             if (move.type() == Flipping) {
-                 score = Star0_5_EQU_F(pos, key, move, depth, alpha, beta);
+                 score = Star0_5_EQU_F(pos, key, move, depth, alpha, beta, mySide);
             } else {
                  Position research_pos = pos;
                  uint64_t next_key = key;
@@ -241,7 +274,7 @@ float F4_NegaScout(Position& pos, uint64_t key, int depth, float alpha, float be
                  update_key(next_key, move.to(), piece_to_index(moving_piece));
                  
                  research_pos.do_move(move);
-                 score = G4_NegaScout(research_pos, next_key, depth - 1, alpha, beta);
+                 score = G4_NegaScout(research_pos, next_key, depth - 1, alpha, beta, mySide);
             }
         }
         
@@ -264,7 +297,7 @@ float F4_NegaScout(Position& pos, uint64_t key, int depth, float alpha, float be
     return best_score;
 }
 
-float G4_NegaScout(Position& pos, uint64_t key, int depth, float alpha, float beta) {
+float G4_NegaScout(Position& pos, uint64_t key, int depth, float alpha, float beta, Color mySide) {
     float original_beta = beta;
     float score = 0.0f;
     Move tt_move;
@@ -274,12 +307,12 @@ float G4_NegaScout(Position& pos, uint64_t key, int depth, float alpha, float be
     }
 
     if (depth == 0 || pos.winner() != NO_COLOR) {
-        return evaluate(pos);
+        return evaluate(pos, mySide);
     }
 
     MoveList moves(pos);
     if (moves.size() == 0) {
-        return evaluate(pos);
+        return evaluate(pos, mySide);
     }
 
     // Move Ordering: Prioritize the move from the TT
@@ -299,7 +332,7 @@ float G4_NegaScout(Position& pos, uint64_t key, int depth, float alpha, float be
     {
         Move move = moves[0];
         if (move.type() == Flipping) {
-            score = Star0_5_EQU_G(pos, key, move, depth, alpha, beta);
+            score = Star0_5_EQU_G(pos, key, move, depth, alpha, beta, mySide);
         } else {
             Position next_pos = pos;
             uint64_t next_key = key;
@@ -313,7 +346,7 @@ float G4_NegaScout(Position& pos, uint64_t key, int depth, float alpha, float be
             update_key(next_key, move.to(), piece_to_index(moving_piece));
 
             next_pos.do_move(move);
-            score = F4_NegaScout(next_pos, next_key, depth - 1, alpha, beta);
+            score = F4_NegaScout(next_pos, next_key, depth - 1, alpha, beta, mySide);
         }
         
         if (score < best_score) {
@@ -333,7 +366,7 @@ float G4_NegaScout(Position& pos, uint64_t key, int depth, float alpha, float be
         Move move = moves[i];
 
         if (move.type() == Flipping) {
-            score = Star0_5_EQU_G(pos, key, move, depth, beta - 1, beta);
+            score = Star0_5_EQU_G(pos, key, move, depth, beta - 1, beta, mySide);
         } else {
             Position next_pos = pos;
             uint64_t next_key = key;
@@ -347,12 +380,12 @@ float G4_NegaScout(Position& pos, uint64_t key, int depth, float alpha, float be
             update_key(next_key, move.to(), piece_to_index(moving_piece));
             
             next_pos.do_move(move);
-            score = F4_NegaScout(next_pos, next_key, depth - 1, beta - 1, beta);
+            score = F4_NegaScout(next_pos, next_key, depth - 1, beta - 1, beta, mySide);
         }
         
         if (score < beta && score > alpha) { // Re-search
              if (move.type() == Flipping) {
-                 score = Star0_5_EQU_G(pos, key, move, depth, alpha, beta);
+                 score = Star0_5_EQU_G(pos, key, move, depth, alpha, beta, mySide);
              } else {
                  Position research_pos = pos;
                  uint64_t next_key = key;
@@ -366,7 +399,7 @@ float G4_NegaScout(Position& pos, uint64_t key, int depth, float alpha, float be
                  update_key(next_key, move.to(), piece_to_index(moving_piece));
 
                  research_pos.do_move(move);
-                 score = F4_NegaScout(research_pos, next_key, depth - 1, alpha, beta);
+                 score = F4_NegaScout(research_pos, next_key, depth - 1, alpha, beta, mySide);
              }
         }
         
@@ -433,6 +466,13 @@ int main()
         }
 
         uint64_t initial_key = compute_initial_key(pos);
+        Color mySide = pos.due_up();
+
+        // If our actual side is Black, we need to reflect this in the TT key
+        if (mySide == Black) {
+            initial_key ^= MY_SIDE_ZOBRIST_KEY;
+        }
+
         int chosen = -1;
         float best_score = -std::numeric_limits<float>::infinity();
         int search_depth = 4; // Adjust depth as needed
@@ -443,7 +483,7 @@ int main()
 
             if (current_move.type() == Flipping) {
                  // For root flips, we also need to average over possibilities
-                 current_score = Star0_5_EQU_F(pos, initial_key, current_move, search_depth, -std::numeric_limits<float>::infinity(), std::numeric_limits<float>::infinity());
+                 current_score = Star0_5_EQU_F(pos, initial_key, current_move, search_depth, -std::numeric_limits<float>::infinity(), std::numeric_limits<float>::infinity(), mySide);
             } else {
                 Position next_pos = pos;
                 uint64_t next_key = initial_key;
@@ -457,7 +497,7 @@ int main()
                 update_key(next_key, current_move.to(), piece_to_index(moving_piece));
                 
                 next_pos.do_move(current_move);
-                current_score = G4_NegaScout(next_pos, next_key, search_depth - 1, -std::numeric_limits<float>::infinity(), std::numeric_limits<float>::infinity());
+                current_score = G4_NegaScout(next_pos, next_key, search_depth - 1, -std::numeric_limits<float>::infinity(), std::numeric_limits<float>::infinity(), mySide);
             }
             
             if (current_score > best_score) {
@@ -477,3 +517,4 @@ int main()
         }
     }
 }
+
