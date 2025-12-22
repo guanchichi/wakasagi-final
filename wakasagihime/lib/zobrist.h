@@ -4,6 +4,9 @@
 #include <cstdint>
 #include "chess.h" // For Position and Piece
 
+// A fixed Zobrist key to XOR into the TT key when the player's side swaps.
+const uint64_t MY_SIDE_ZOBRIST_KEY = 0x547275654E616D65ULL; // "TrueName" in ASCII
+
 // Zobrist table: 32 squares, 15 piece states
 // Piece states: Red(7), Black(7), Hidden(1)
 extern uint64_t zobrist_table[32][15];
