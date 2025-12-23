@@ -2,6 +2,8 @@
 #include <cstring> // For std::memset
 #include <algorithm>
 
+long long tt_probes = 0;
+long long tt_hits = 0;
 TTEntry tt_table[TABLE_SIZE];
 
 void tt_init() {
@@ -11,12 +13,15 @@ void tt_init() {
 }
 
 bool tt_probe(uint64_t key, int depth, float& alpha, float& beta, float& score, Move& bestMove) {
+    tt_probes++;
     TTEntry& entry = tt_table[key & (TABLE_SIZE - 1)];
 
     // Key mismatch or entry too shallow → unusable
     if (entry.key != key || entry.depth < depth)
         return false;
 
+    tt_hits++;
+    
     // Provide best move for move ordering
     bestMove = entry.bestMove;
 

@@ -62,6 +62,8 @@ float F4_NegaScout(Position& pos, uint64_t key, int depth, float alpha, float be
             }
             update_key(next_key, move.to(), piece_to_index(moving_piece));
             
+            next_key ^= MY_SIDE_ZOBRIST_KEY;
+
             next_pos.do_move(move);
             score = G4_NegaScout(next_pos, next_key, depth - 1, alpha, beta, mySide);
         }
@@ -96,6 +98,8 @@ float F4_NegaScout(Position& pos, uint64_t key, int depth, float alpha, float be
             }
             update_key(next_key, move.to(), piece_to_index(moving_piece));
 
+            next_key ^= MY_SIDE_ZOBRIST_KEY;
+
             next_pos.do_move(move);
             score = G4_NegaScout(next_pos, next_key, depth - 1, alpha, alpha + 1, mySide);
         }
@@ -114,6 +118,8 @@ float F4_NegaScout(Position& pos, uint64_t key, int depth, float alpha, float be
                     update_key(next_key, move.to(), piece_to_index(captured_piece));
                  }
                  update_key(next_key, move.to(), piece_to_index(moving_piece));
+
+                 next_key ^= MY_SIDE_ZOBRIST_KEY;
                  
                  research_pos.do_move(move);
                  score = G4_NegaScout(research_pos, next_key, depth - 1, alpha, beta, mySide);
@@ -187,6 +193,8 @@ float G4_NegaScout(Position& pos, uint64_t key, int depth, float alpha, float be
             }
             update_key(next_key, move.to(), piece_to_index(moving_piece));
 
+            next_key ^= MY_SIDE_ZOBRIST_KEY;
+
             next_pos.do_move(move);
             score = F4_NegaScout(next_pos, next_key, depth - 1, alpha, beta, mySide);
         }
@@ -220,6 +228,8 @@ float G4_NegaScout(Position& pos, uint64_t key, int depth, float alpha, float be
                 update_key(next_key, move.to(), piece_to_index(captured_piece));
             }
             update_key(next_key, move.to(), piece_to_index(moving_piece));
+
+            next_key ^= MY_SIDE_ZOBRIST_KEY;
             
             next_pos.do_move(move);
             score = F4_NegaScout(next_pos, next_key, depth - 1, beta - 1, beta, mySide);
@@ -239,6 +249,8 @@ float G4_NegaScout(Position& pos, uint64_t key, int depth, float alpha, float be
                     update_key(next_key, move.to(), piece_to_index(captured_piece));
                  }
                  update_key(next_key, move.to(), piece_to_index(moving_piece));
+
+                 next_key ^= MY_SIDE_ZOBRIST_KEY;
 
                  research_pos.do_move(move);
                  score = F4_NegaScout(research_pos, next_key, depth - 1, alpha, beta, mySide);

@@ -4,6 +4,9 @@
 #include <cstdint>
 #include "types.h" // Include for Move type
 
+extern long long tt_probes;
+extern long long tt_hits;
+
 // The size of the transposition table. Should be a power of 2.
 // 1<<20 is about 1 million entries. Each entry is ~24 bytes. Total size: ~24 MB.
 const int TABLE_SIZE = 1 << 20;

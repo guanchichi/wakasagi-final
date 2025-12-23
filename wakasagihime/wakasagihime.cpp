@@ -10,6 +10,7 @@
 #include <vector>
 #include <algorithm>
 #include <limits>
+#include <chrono>
 
 
 
@@ -100,7 +101,7 @@ int main()
 
         int chosen = -1;
         float best_score = -std::numeric_limits<float>::infinity();
-        int search_depth = 4; // Adjust depth as needed
+        int search_depth = 8; // Adjust depth as needed
 
         for (int i = 0; i < moves.size(); ++i) {
             float current_score;
@@ -133,6 +134,10 @@ int main()
             std::fflush(stderr);
         }
         
+        debug << "TT Stats: Hits=" << tt_hits 
+              << ", Probes=" << tt_probes 
+              << ", Rate=" << (tt_probes > 0 ? (double)tt_hits / tt_probes * 100.0 : 0.0) << "%\n";
+
         if (chosen != -1) {
             /* output the move */
             info << moves[chosen];
