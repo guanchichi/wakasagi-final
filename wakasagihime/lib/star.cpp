@@ -15,6 +15,11 @@ float Star0_5_EQU_F(Position& pos, uint64_t key, Move flip_move, int depth, floa
         return evaluate(pos, mySide);
     }
 
+    // At horizon nodes, use the heuristic score for the flip instead of searching deeper
+    if (depth <= 0) {
+        return get_flip_score(pos, flip_move.from(), mySide);
+    }
+
     auto potential_pieces = pos.get_collection(); 
     int c = potential_pieces.size(); 
 
@@ -76,6 +81,10 @@ float Star0_5_EQU_G(Position& pos, uint64_t key, Move flip_move, int depth, floa
         return evaluate(pos, mySide);
     }
 
+    // At horizon nodes, use the heuristic score for the flip instead of searching deeper
+    if (depth <= 0) {
+        return get_flip_score(pos, flip_move.from(), mySide);
+    }
     
     auto potential_pieces = pos.get_collection();
     int c = potential_pieces.size();

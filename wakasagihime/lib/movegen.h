@@ -76,7 +76,8 @@ class MoveList {
     /*
      * Index the MoveList like an array.
      */
-    constexpr Move operator[](size_t index) { return moveList[index]; }
+    Move& operator[](size_t index) { return moveList[index]; }
+    const Move& operator[](size_t index) const { return moveList[index]; }
 
     Move *begin() { return moveList; }
     Move *end() { return last; }

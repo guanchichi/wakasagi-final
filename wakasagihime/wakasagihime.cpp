@@ -11,39 +11,16 @@
 #include <algorithm>
 #include <limits>
 #include <chrono>
+#include <cmath> // For std::pow
 
 
 
-// Evaluation function
-int piece_value(PieceType pt) {
-    switch (pt) {
-        case General:  return 100;
-        case Advisor:  return 40;
-        case Elephant: return 20;
-        case Chariot:  return 10;
-        case Horse:    return 5;
-        case Cannon:   return 15;
-        case Soldier:  return 2;
-        default:       return 0;
-    }
-}
+// Evaluation functions are now in lib/evaluate.cpp
 
-float evaluate(const Position& pos, Color mySide) {
-    float score = 0;
-    Color us = mySide;
-    Color them = ~us;
-
-    for (PieceType pt = General; pt < SHOWN_PIECE_TYPE_NB; pt += 1) {
-        score += pos.count(us, pt) * piece_value(pt);
-        score -= pos.count(them, pt) * piece_value(pt);
-    }
-
-    // From the perspective of the player whose turn it is
-    if (pos.due_up() != mySide) {
-        return -score;
-    }
-    return score;
-}
+// Global variables for time management
+std::chrono::time_point<std::chrono::steady_clock> stop_time;
+bool time_up = false;
+long long nodes_visited = 0;
 
 
 
@@ -128,12 +105,16 @@ int main()
 
 
         auto start_time = std::chrono::steady_clock::now();
-        auto stop_time = start_time + std::chrono::milliseconds(move_time_ms);
+        // Use the global stop_time
+        stop_time = start_time + std::chrono::milliseconds(move_time_ms);
 
         int best_move_idx = -1;
 
         // --- Iterative Deepening ---
         for (int depth = 1; depth <= max_iter_depth; ++depth) {
+            // Reset flags for each new depth search
+            time_up = false;
+            nodes_visited = 0;
             
             if (std::chrono::steady_clock::now() > stop_time) {
                  debug << "Time up before starting depth " << depth << "\n";
@@ -146,6 +127,8 @@ int main()
             for (int i = 0; i < moves.size(); ++i) {
                 float current_score;
                 Move current_move = moves[i];
+
+                if (time_up) break; // Stop searching moves in this depth if time is up
 
                 if (current_move.type() == Flipping) {
                     current_score = Star0_5_EQU_F(pos, initial_key, current_move, depth, -std::numeric_limits<float>::infinity(), std::numeric_limits<float>::infinity(), mySide);
@@ -165,14 +148,20 @@ int main()
                     current_score = G4_NegaScout(next_pos, next_key, depth - 1, -std::numeric_limits<float>::infinity(), std::numeric_limits<float>::infinity(), mySide);
                 }
                 
+                // After a move is searched, check if time ran out during the search
+                if (time_up) {
+                    debug << "Search for move " << current_move << " aborted due to time up.\n";
+                    continue; // Don't update best score with partial results
+                }
+
                 if (current_score > best_score_this_iter) {
                     best_score_this_iter = current_score;
                     current_chosen_idx = i;
                 }
             }
 
-            // If the search for this depth completed within the time limit, we can trust its result.
-            if (std::chrono::steady_clock::now() <= stop_time) {
+            // If the search for this depth was not aborted by the time flag, we can trust its result.
+            if (!time_up) {
                 best_move_idx = current_chosen_idx;
                 if (best_move_idx != -1) {
                     debug << "Depth " << depth << " completed. Best move so far: " << moves[best_move_idx] << "\n";

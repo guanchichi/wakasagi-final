@@ -6,7 +6,7 @@
 include sources.mk
 
 CC = g++
-LIB_SRC = lib/tt.cpp lib/zobrist.cpp lib/marisa.cpp lib/cdc.cpp lib/chess.cpp lib/movegen.cpp lib/helper.cpp lib/negascout.cpp lib/star.cpp wakasagihime.cpp
+LIB_SRC = lib/tt.cpp lib/zobrist.cpp lib/marisa.cpp lib/cdc.cpp lib/chess.cpp lib/movegen.cpp lib/helper.cpp lib/negascout.cpp lib/star.cpp lib/evaluate.cpp wakasagihime.cpp
 SOURCES = $(LIB_SRC) $(ADD_SOURCES)
 
 # normal wakasagi
