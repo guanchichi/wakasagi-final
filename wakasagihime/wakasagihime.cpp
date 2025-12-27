@@ -131,7 +131,7 @@ int main()
                 if (time_up) break; // Stop searching moves in this depth if time is up
 
                 if (current_move.type() == Flipping) {
-                    current_score = Star0_5_EQU_F(pos, initial_key, current_move, depth, -std::numeric_limits<float>::infinity(), std::numeric_limits<float>::infinity(), mySide);
+                    current_score = Star1_EQU_F(pos, initial_key, current_move, depth, -std::numeric_limits<float>::infinity(), std::numeric_limits<float>::infinity(), mySide);
                 } else {
                     Position next_pos = pos;
                     uint64_t next_key = initial_key;

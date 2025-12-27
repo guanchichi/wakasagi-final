@@ -91,7 +91,7 @@ float F4_NegaScout(Position& pos, uint64_t key, int depth, float alpha, float be
     {
         Move move = moves[0];
         if (move.type() == Flipping) {
-            score = Star0_5_EQU_F(pos, key, move, depth, alpha, beta, mySide);
+            score = Star1_EQU_F(pos, key, move, depth, alpha, beta, mySide);
         } else {
             Position next_pos = pos;
             uint64_t next_key = key;
@@ -129,7 +129,7 @@ float F4_NegaScout(Position& pos, uint64_t key, int depth, float alpha, float be
         Move move = moves[i];
         
         if (move.type() == Flipping) {
-            score = Star0_5_EQU_F(pos, key, move, depth, alpha, alpha + 1, mySide);
+            score = Star1_EQU_F(pos, key, move, depth, alpha, alpha + 1, mySide);
         } else {
             Position next_pos = pos;
             uint64_t next_key = key;
@@ -152,7 +152,7 @@ float F4_NegaScout(Position& pos, uint64_t key, int depth, float alpha, float be
 
         if (score > alpha && score < beta) { // Re-search
             if (move.type() == Flipping) {
-                 score = Star0_5_EQU_F(pos, key, move, depth, alpha, beta, mySide);
+                 score = Star1_EQU_F(pos, key, move, depth, alpha, beta, mySide);
             } else {
                  Position research_pos = pos;
                  uint64_t next_key = key;
@@ -267,7 +267,7 @@ float G4_NegaScout(Position& pos, uint64_t key, int depth, float alpha, float be
     {
         Move move = moves[0];
         if (move.type() == Flipping) {
-            score = Star0_5_EQU_G(pos, key, move, depth, alpha, beta, mySide);
+            score = Star1_EQU_G(pos, key, move, depth, alpha, beta, mySide);
         } else {
             Position next_pos = pos;
             uint64_t next_key = key;
@@ -305,7 +305,7 @@ float G4_NegaScout(Position& pos, uint64_t key, int depth, float alpha, float be
         Move move = moves[i];
 
         if (move.type() == Flipping) {
-            score = Star0_5_EQU_G(pos, key, move, depth, beta - 1, beta, mySide);
+            score = Star1_EQU_G(pos, key, move, depth, beta - 1, beta, mySide);
         } else {
             Position next_pos = pos;
             uint64_t next_key = key;
@@ -328,7 +328,7 @@ float G4_NegaScout(Position& pos, uint64_t key, int depth, float alpha, float be
 
         if (score < beta && score > alpha) { // Re-search
              if (move.type() == Flipping) {
-                 score = Star0_5_EQU_G(pos, key, move, depth, alpha, beta, mySide);
+                 score = Star1_EQU_G(pos, key, move, depth, alpha, beta, mySide);
              } else {
                  Position research_pos = pos;
                  uint64_t next_key = key;
