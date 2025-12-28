@@ -32,8 +32,7 @@ float Star1_EQU_F(Position& pos, uint64_t key, Move flip_move, int depth, float 
         return G4_NegaScout(next_pos, key, depth - 1, alpha, beta, mySide);
     }
 
-    
-    Sort potential pieces by their values (high to low)
+    // Sort potential pieces by their values (high to low)
     std::sort(potential_pieces.begin(), potential_pieces.end(), [](const Piece& a, const Piece& b) {
         return piece_value(a.type) > piece_value(b.type);
     });
@@ -118,7 +117,7 @@ float Star1_EQU_G(Position& pos, uint64_t key, Move flip_move, int depth, float 
         return F4_NegaScout(next_pos, key, depth - 1, alpha, beta, mySide);
     }
 
-    Sort potential pieces by their values (high to low)
+    // Sort potential pieces by their values (high to low)
     std::sort(potential_pieces.begin(), potential_pieces.end(), [](const Piece& a, const Piece& b) {
         return piece_value(a.type) > piece_value(b.type);
     });
