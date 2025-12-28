@@ -31,7 +31,7 @@ bool tt_probe(uint64_t key, int depth, float& alpha, float& beta, float& score, 
         return true;
     }
 
-    // Bound handling (VERY important for Negascout)
+    // Bound handling
     if (entry.flag == FLAG_LOWER_BOUND) {
         alpha = std::max(alpha, entry.score);
     } else if (entry.flag == FLAG_UPPER_BOUND) {

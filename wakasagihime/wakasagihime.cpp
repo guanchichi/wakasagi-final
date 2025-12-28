@@ -66,6 +66,43 @@ int main()
         Position pos(line);
         MoveList moves(pos);
 
+        // Correct the piece collection
+        {
+            std::vector<Piece> hidden_pieces;
+            // Populate with the standard set of pieces
+            for (Color s : { Color::Red, Color::Black }) {
+                hidden_pieces.push_back(Piece(s, General));
+                for (int i = 0; i < 2; ++i) {
+                    hidden_pieces.push_back(Piece(s, Advisor));
+                    hidden_pieces.push_back(Piece(s, Elephant));
+                    hidden_pieces.push_back(Piece(s, Chariot));
+                    hidden_pieces.push_back(Piece(s, Horse));
+                    hidden_pieces.push_back(Piece(s, Cannon));
+                }
+                for (int i = 0; i < 5; ++i) {
+                    hidden_pieces.push_back(Piece(s, Soldier));
+                }
+            }
+
+            // Remove visible pieces from the list
+            for (Square sq = SQ_A1; sq < SQUARE_NB; sq = Square(sq + 1)) {
+                Piece p = pos.peek_piece_at(sq);
+                if (p.type != Hidden && p.type != NO_PIECE) {
+                    for (auto it = hidden_pieces.begin(); it != hidden_pieces.end(); ++it) {
+                        if (it->side == p.side && it->type == p.type) {
+                            hidden_pieces.erase(it);
+                            break;
+                        }
+                    }
+                }
+            }
+
+            pos.clear_collection();
+            if (!hidden_pieces.empty()) {
+                pos.add_collection(hidden_pieces.data(), hidden_pieces.size());
+            }
+        }
+
         if (pos.time_left() < -1.0) {
             total_time_left_ms = 600000; // Reset for new game
             continue;

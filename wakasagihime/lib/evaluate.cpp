@@ -3,7 +3,6 @@
 #include "evaluate.h"
 #include "chess.h"
 #include "types.h"
-// #include <cmath> // No longer needed
 
 // --- Precomputed table for distance-based score decay ---
 // Replaces std::pow(2.0f, 2.0f - md)
@@ -27,37 +26,6 @@ float get_flip_score(const Position& pos, Square sq, Color mySide);
 int piece_value(PieceType pt);
 bool is_dominating(const Position& pos, Color mySide);
 
-
-// --- Helper function for move ordering ---
-float calculate_influence_at(Square s, const Position& pos) {
-    float total_influence = 0;
-    Piece p = pos.peek_piece_at(s);
-
-    if (p.type >= MOVABLE_PIECE_TYPE_NB) {
-        return 0;
-    }
-
-    Board all_pieces = pos.pieces(ALL_PIECES) & ~pos.pieces(Hidden);
-    for (Square other_sq : BoardView(all_pieces)) {
-        if (s == other_sq) continue;
-        Piece other_p = pos.peek_piece_at(other_sq);
-        if (other_p.type >= MOVABLE_PIECE_TYPE_NB) continue;
-        
-        if (p.side == other_p.side) continue;
-
-        int md = distance<Square>(s, other_sq);
-        float i = InfluenceValues[p.type][other_p.type];
-        float w = 0;
-
-        if (md == 1) {
-            w = i / 2.0f;
-        } else if (md > 1 && md < 12) { // Use lookup table
-            w = i * DecayTable[md];
-        }
-        total_influence += w;
-    }
-    return total_influence;
-}
 
 
 int piece_value(PieceType pt) {

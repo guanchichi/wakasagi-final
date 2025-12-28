@@ -33,10 +33,10 @@ float Star1_EQU_F(Position& pos, uint64_t key, Move flip_move, int depth, float 
     }
 
     
-    // Sort potential pieces by their values (high to low)/////////////////////////////////////
-    // std::sort(potential_pieces.begin(), potential_pieces.end(), [](const Piece& a, const Piece& b) {
-    //     return piece_value(a.type) > piece_value(b.type);
-    // });
+    Sort potential pieces by their values (high to low)
+    std::sort(potential_pieces.begin(), potential_pieces.end(), [](const Piece& a, const Piece& b) {
+        return piece_value(a.type) > piece_value(b.type);
+    });
 
     // --- Star1 initialization ---
     float A = (float)c * (alpha - V_MAX) + V_MAX;
@@ -48,6 +48,9 @@ float Star1_EQU_F(Position& pos, uint64_t key, Move flip_move, int depth, float 
 
     for (int i = 0; i < c; ++i) {
         Piece piece_outcome = potential_pieces[i]; 
+        std::vector <Piece> remaining_pieces = potential_pieces;
+        remaining_pieces.erase(remaining_pieces.begin() + i);
+
         Position next_pos(pos); 
         
         next_pos.clear_collection();
@@ -59,6 +62,10 @@ float Star1_EQU_F(Position& pos, uint64_t key, Move flip_move, int depth, float 
         update_key(next_key, flip_move.from(), piece_to_index(piece_outcome)); 
         
         next_pos.do_move(flip_move);
+
+        if (!remaining_pieces.empty()) {
+            next_pos.add_collection(remaining_pieces.data(), remaining_pieces.size());
+        }
 
         Color next_mySide = mySide;
         if (piece_outcome.side != mySide && pos.peek_piece_at(flip_move.from()).side == Mystery) {
@@ -111,10 +118,10 @@ float Star1_EQU_G(Position& pos, uint64_t key, Move flip_move, int depth, float 
         return F4_NegaScout(next_pos, key, depth - 1, alpha, beta, mySide);
     }
 
-    // Sort potential pieces by their values (high to low)/////////////////////////////////////
-    // std::sort(potential_pieces.begin(), potential_pieces.end(), [](const Piece& a, const Piece& b) {
-    //     return piece_value(a.type) > piece_value(b.type);
-    // });
+    Sort potential pieces by their values (high to low)
+    std::sort(potential_pieces.begin(), potential_pieces.end(), [](const Piece& a, const Piece& b) {
+        return piece_value(a.type) > piece_value(b.type);
+    });
 
     // --- Star1 initialization ---
     float A = (float)c * (alpha - V_MAX) + V_MAX;
@@ -126,6 +133,10 @@ float Star1_EQU_G(Position& pos, uint64_t key, Move flip_move, int depth, float 
 
     for (int i = 0; i < c; ++i) {
         Piece piece_outcome = potential_pieces[i];
+
+        std::vector<Piece> remaining_pieces = potential_pieces;
+        remaining_pieces.erase(remaining_pieces.begin() + i);
+
         Position next_pos(pos); 
         next_pos.clear_collection();
         next_pos.add_collection(&piece_outcome, 1);
@@ -136,6 +147,10 @@ float Star1_EQU_G(Position& pos, uint64_t key, Move flip_move, int depth, float 
         update_key(next_key, flip_move.from(), piece_to_index(piece_outcome)); 
 
         next_pos.do_move(flip_move); 
+
+        if (!remaining_pieces.empty()) {
+            next_pos.add_collection(remaining_pieces.data(), remaining_pieces.size());
+        }
 
         Color next_mySide = mySide;
         if (piece_outcome.side != mySide && pos.peek_piece_at(flip_move.from()).side == Mystery) {
